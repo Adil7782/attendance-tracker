@@ -1,0 +1,175 @@
+// C:\Users\Aadhi\Desktop\proj\attendance-portal\attendace-portal\prisma\schema.prisma
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------- Core Models ---------------------
+// Define User and Project first as they are central to the application.
+
+model User {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  phone       String
+  role        String
+  password    String
+  pin         String?
+  recentLogin DateTime?
+  lastLogin   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  assignments    ProjectAssignment[]
+  createdTasks   Task[]              @relation("tasksCreated")
+  taskAssignments TaskAssignment[]
+  taskHistory    TaskHistory[]
+  attendances    Attendance[]
+  leaves         Leave[]
+  approvedLeaves Leave[]             @relation("LeaveApprover")
+
+  @@index([email])
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  url         String   @unique
+  dbUrl       String?  @unique
+  client      String
+  factory     String?
+  unit        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  assignments     ProjectAssignment[]
+  taskAssignments TaskAssignment[]
+
+  @@index([client])
+  @@index([unit])
+}
+
+
+// --------------------- Linking and Feature Models ---------------------
+// These models depend on User and Project, so they are defined after.
+
+model ProjectAssignment {
+  id         String   @id @default(uuid())
+  userId     String
+  projectId  String
+  assignedAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  deadline    DateTime
+  priority    String?
+  remark      String?
+  type        String   @default("single")
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy   User             @relation("tasksCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  assignments TaskAssignment[]
+  history     TaskHistory[]
+
+  @@index([createdById])
+  @@index([title])
+}
+
+model TaskAssignment {
+  id        String   @id @default(uuid())
+  taskId    String
+  projectId String
+  userId    String
+  status    String   @default("Pending")
+  orderNo   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model TaskHistory {
+  id        String   @id @default(uuid())
+  taskId    String
+  userId    String
+  action    String
+  status    String   @default("Pending")
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model Attendance {
+  id         String    @id @default(uuid())
+  userId     String
+  loginTime  DateTime
+  logoutTime DateTime?
+  availableTime DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Leave {
+  id           String      @id @default(uuid())
+  userId       String
+  leaveType    LeaveType
+  startDate    DateTime
+  endDate      DateTime
+  reason       String?
+  status       LeaveStatus @default(pending)
+  approvedById String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy User?       @relation("LeaveApprover", fields: [approvedById], references: [id])
+}
+
+
+// --------------------- Enums ---------------------
+// Enums can be defined anywhere, but it's clean to have them at the end.
+
+enum LeaveType {
+  casual
+  sick
+  annual
+  unpaid
+  other
+}
+
+enum LeaveStatus {
+  pending
+  approved
+  rejected
+}
