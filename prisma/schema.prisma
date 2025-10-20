@@ -1,5 +1,3 @@
-// C:\Users\Aadhi\Desktop\proj\attendance-portal\attendace-portal\prisma\schema.prisma
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-1.0.x"]
@@ -10,46 +8,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --------------------- Core Models ---------------------
-// Define User and Project first as they are central to the application.
-
 model User {
-  id          String   @id @default(uuid())
-  name        String
-  email       String   @unique
-  phone       String
-  role        String
-  password    String
-  pin         String?
-  recentLogin DateTime?
-  lastLogin   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  assignments    ProjectAssignment[]
-  createdTasks   Task[]              @relation("tasksCreated")
+  id              String              @id @default(uuid())
+  name            String
+  email           String              @unique
+  phone           String
+  role            String
+  password        String
+  pin             String?
+  recentLogin     DateTime?
+  lastLogin       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  attendances     Attendance[]
+  approvedLeaves  Leave[]             @relation("LeaveApprover")
+  leaves          Leave[]
+  assignments     ProjectAssignment[]
+  createdTasks    Task[]              @relation("tasksCreated")
   taskAssignments TaskAssignment[]
-  taskHistory    TaskHistory[]
-  attendances    Attendance[]
-  leaves         Leave[]
-  approvedLeaves Leave[]             @relation("LeaveApprover")
+  taskHistory     TaskHistory[]
 
   @@index([email])
 }
 
 model Project {
-  id          String   @id @default(uuid())
-  name        String
-  url         String   @unique
-  dbUrl       String?  @unique
-  client      String
-  factory     String?
-  unit        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
+  id              String              @id @default(uuid())
+  name            String
+  url             String              @unique
+  client          String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  dbUrl           String?             @unique
+  factory         String?
+  unit            String?
   assignments     ProjectAssignment[]
   taskAssignments TaskAssignment[]
 
@@ -57,18 +48,13 @@ model Project {
   @@index([unit])
 }
 
-
-// --------------------- Linking and Feature Models ---------------------
-// These models depend on User and Project, so they are defined after.
-
 model ProjectAssignment {
   id         String   @id @default(uuid())
   userId     String
   projectId  String
   assignedAt DateTime @default(now())
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
   @@index([projectId])
@@ -76,17 +62,16 @@ model ProjectAssignment {
 }
 
 model Task {
-  id          String   @id @default(uuid())
+  id          String           @id @default(uuid())
   title       String
   description String?
   deadline    DateTime
   priority    String?
   remark      String?
-  type        String   @default("single")
   createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  type        String           @default("single")
   createdBy   User             @relation("tasksCreated", fields: [createdById], references: [id], onDelete: Cascade)
   assignments TaskAssignment[]
   history     TaskHistory[]
@@ -101,13 +86,12 @@ model TaskAssignment {
   projectId String
   userId    String
   status    String   @default("Pending")
-  orderNo   Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderNo   Int      @default(0)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, projectId, userId])
   @@index([projectId])
@@ -121,23 +105,21 @@ model TaskHistory {
   action    String
   status    String   @default("Pending")
   createdAt DateTime @default(now())
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
   @@index([userId])
 }
 
 model Attendance {
-  id         String    @id @default(uuid())
-  userId     String
-  loginTime  DateTime
-  logoutTime DateTime?
-  availableTime DateTime?
-  createdAt  DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String    @id @default(uuid())
+  userId        String
+  loginTime     DateTime
+  logoutTime    DateTime?
+  createdAt     DateTime  @default(now())
+  availableTime String?
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Leave {
@@ -151,14 +133,9 @@ model Leave {
   approvedById String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  approvedBy User?       @relation("LeaveApprover", fields: [approvedById], references: [id])
+  approvedBy   User?       @relation("LeaveApprover", fields: [approvedById], references: [id])
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-
-// --------------------- Enums ---------------------
-// Enums can be defined anywhere, but it's clean to have them at the end.
 
 enum LeaveType {
   casual
