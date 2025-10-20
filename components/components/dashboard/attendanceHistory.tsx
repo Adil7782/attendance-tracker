@@ -1,8 +1,9 @@
 // components/AttendanceHistoryTable.tsx
 import React from 'react';
 import { FileText } from 'lucide-react';
-import { Attendance } from '@prisma/client';
+
 import { formatDate, formatTime } from '@/lib/time';
+import { Attendance } from '@prisma/client';
 
 interface AttendanceHistoryTableProps {
   attendances: Attendance[];
