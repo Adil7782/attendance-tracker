@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ServiceWorkerRegister from "@/components/pwa";
 
 // Load fonts
 const geistSans = Geist({
@@ -47,6 +48,7 @@ export default function RootLayout({
 <link rel="manifest" href="/site.webmanifest" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ServiceWorkerRegister />
         {children}
       </body>
     </html>
